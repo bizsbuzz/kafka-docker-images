@@ -19,24 +19,6 @@ set -o nounset \
     -o verbose \
     -o xtrace
 
-zkhosts=$(awk '{print $1}' /tmp/zookeepers)
-if [ -n "$zkhosts" ] ; then
-	zknodes=`echo $zkhosts`			# convert <\n> to ' '
-fi
-for znode in ${zknodes//,/ } ; do
-	zk+=("$znode:2181,")
-done
-export KAFKA_ZOOKEEPER_CONNECT=${zk::-1}
-echo $KAFKA_ZOOKEEPER_CONNECT
-
-murl_top=http://169.254.169.254/latest/meta-data
-ThisInstance=$(curl -f $murl_top/instance-id 2> /dev/null)
-ThisRegion=$(curl -f $murl_top/placement/availability-zone |sed 's/[a-z]$//')
-ThisPrivateIpAddress=$(curl -f $murl_top/latest/meta-data/local-ipv4)
-export KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://" + $ThisPrivateIpAddress + ":9092"
-echo $KAFKA_ADVERTISED_LISTENERS
-
-
 dub ensure KAFKA_ZOOKEEPER_CONNECT
 dub ensure KAFKA_ADVERTISED_LISTENERS
 
