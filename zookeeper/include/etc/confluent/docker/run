@@ -29,7 +29,7 @@ fi
 export ZOOKEEPER_SERVERS_PORT=${ZOOKEEPER_SERVERS_PORT:-"22888:23888"}
 
 for znode in ${zknodes//,/ } ; do
-        zk+=("$znode:$ZOOKEEPER_SERVERS_PORT;")
+        zk+=$znode:$ZOOKEEPER_SERVERS_PORT";"
 done
 export ZOOKEEPER_SERVERS=${zk::-1}
 echo $ZOOKEEPER_SERVERS

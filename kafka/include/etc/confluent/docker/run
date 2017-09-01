@@ -37,7 +37,7 @@ fi
 export ZOOKEEPER_PORT=${ZOOKEEPER_PORT:-"2181"}
 
 for znode in ${zknodes//,/ } ; do
-        zk+=("$znode:$ZOOKEEPER_PORT,")
+        zk+=$znode:$ZOOKEEPER_PORT,
 done
 export KAFKA_ZOOKEEPER_CONNECT=${zk::-1}
 echo $KAFKA_ZOOKEEPER_CONNECT
