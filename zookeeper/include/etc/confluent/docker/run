@@ -26,7 +26,7 @@ if [ -n "$zkhosts" ] ; then
         zknodes=`echo $zkhosts`                 # convert <\n> to ' '
 fi
 
-export ZOOKEEPER_SERVERS_PORT=${ZOOKEEPER_SERVERS_PORT:-"22888:23888"}
+export ZOOKEEPER_SERVERS_PORT=${ZOOKEEPER_SERVERS_PORT:-"2888:3888"}
 
 for znode in ${zknodes//,/ } ; do
         zk+=$znode:$ZOOKEEPER_SERVERS_PORT";"
