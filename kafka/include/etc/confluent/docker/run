@@ -26,16 +26,12 @@ echo "===> User"
 id
 
 
-
-
 echo "===> Iniatializing Zookeeper and Broker Host..."
 zkhosts=$(awk '{print $1}' /tmp/zookeepers)
 if [ -n "$zkhosts" ] ; then
         zknodes=`echo $zkhosts`                 # convert <\n> to ' '
 fi
-
 export ZOOKEEPER_PORT=${ZOOKEEPER_PORT:-"2181"}
-
 for znode in ${zknodes//,/ } ; do
         zk+=$znode:$ZOOKEEPER_PORT,
 done
@@ -48,11 +44,11 @@ ThisInstance=$(curl -f $murl_top/instance-id 2> /dev/null)
 ThisRegion=$(curl -f $murl_top/placement/availability-zone |sed 's/[a-z]$//')
 ThisPrivateIpAddress=$(curl -f $murl_top/local-ipv4)
 
-echo ${KAFKA_LISTENERS//,/ }
-for bnode in ${KAFKA_LISTENERS//,/ } ; do
+LISTENERS=${LISTENERS:-"PLAINTEXT://:9092"}
+echo ${LISTENERS//,/ }
+for bnode in ${LISTENERS//,/ } ; do
      brListeners+=${bnode///://$ThisPrivateIpAddress:},
 done
-
 export KAFKA_ADVERTISED_LISTENERS=${brListeners::-1}
 echo $KAFKA_ADVERTISED_LISTENERS
 
