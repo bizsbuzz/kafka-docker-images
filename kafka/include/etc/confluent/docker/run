@@ -25,35 +25,45 @@ env | sort
 echo "===> User"
 id
 
-
-echo "===> Iniatializing Zookeeper and Broker Host..."
-zkhosts=$(awk '{print $1}' /tmp/zookeepers)
-if [ -n "$zkhosts" ] ; then
-        zknodes=`echo $zkhosts`                 # convert <\n> to ' '
+echo "===> Iniatializing Zookeeper Host..."
+if [[ -z "${KAFKA_LISTENERS-}" ]]
+then
+        zkhosts=$(awk '{print $1}' /tmp/zookeepers)
+        if [ -n "$zkhosts" ] ; then
+                zknodes=`echo $zkhosts`                 # convert <\n> to ' '
+        fi
+        export ZOOKEEPER_PORT=${ZOOKEEPER_PORT:-"2181"}
+        for znode in ${zknodes//,/ } ; do
+                zk+=$znode:$ZOOKEEPER_PORT,
+        done
+        export KAFKA_ZOOKEEPER_CONNECT=${zk::-1}
 fi
-export ZOOKEEPER_PORT=${ZOOKEEPER_PORT:-"2181"}
-for znode in ${zknodes//,/ } ; do
-        zk+=$znode:$ZOOKEEPER_PORT,
-done
-export KAFKA_ZOOKEEPER_CONNECT=${zk::-1}
 echo $KAFKA_ZOOKEEPER_CONNECT
 
 
-murl_top=http://169.254.169.254/latest/meta-data
-ThisInstance=$(curl -f $murl_top/instance-id 2> /dev/null)
-ThisRegion=$(curl -f $murl_top/placement/availability-zone |sed 's/[a-z]$//')
-ThisPrivateIpAddress=$(curl -f $murl_top/local-ipv4)
 
-LISTENERS=${LISTENERS:-"PLAINTEXT://:9092"}
-echo ${LISTENERS//,/ }
-for bnode in ${LISTENERS//,/ } ; do
-     brListeners+=${bnode///://$ThisPrivateIpAddress:},
-done
-export KAFKA_ADVERTISED_LISTENERS=${brListeners::-1}
+echo "===> Iniatializing Broker Host..."
+if [[ -z "${KAFKA_ADVERTISED_LISTENERS-}" ]]
+then
+        murl_top=http://169.254.169.254/latest/meta-data
+        ThisInstance=$(curl -f $murl_top/instance-id 2> /dev/null)
+        ThisRegion=$(curl -f $murl_top/placement/availability-zone |sed 's/[a-z]$//')
+        ThisPrivateIpAddress=$(curl -f $murl_top/local-ipv4)
+
+        LISTENERS=${LISTENERS:-"PLAINTEXT://:9092"}
+        echo ${LISTENERS//,/ }
+        for bnode in ${LISTENERS//,/ } ; do
+        brListeners+=${bnode///://$ThisPrivateIpAddress:},
+        done
+        export KAFKA_ADVERTISED_LISTENERS=${brListeners::-1}
+fi
 echo $KAFKA_ADVERTISED_LISTENERS
 
-
-export KAFKA_JMX_HOSTNAME=${KAFKA_JMX_HOSTNAME:-$ThisPrivateIpAddress}
+echo "===> Iniatializing JMX Host..."
+if [[ -z "${KAFKA_JMX_HOSTNAME-}" ]]
+then
+        export KAFKA_JMX_HOSTNAME=${KAFKA_JMX_HOSTNAME:-$ThisPrivateIpAddress}
+fi
 echo $KAFKA_JMX_HOSTNAME
 
 echo "===> Configuring ..."
