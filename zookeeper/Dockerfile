@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM confluentinc/cp-base
+FROM confluentinc/cp-base:3.3.0
+#FROM infra/zookeeper-base:3.3.0
 
 EXPOSE 2181 2888 3888
 
