@@ -28,7 +28,7 @@ id
 echo "===> Iniatializing Zookeeper Host..."
 if [[ -z "${KAFKA_LISTENERS-}" ]]
 then
-        zkhosts=$(awk '{print $1}' /tmp/zookeepers)
+        zkhosts=$(awk '{print $2}' /tmp/zookeepers)
         if [ -n "$zkhosts" ] ; then
                 zknodes=`echo $zkhosts`                 # convert <\n> to ' '
         fi
