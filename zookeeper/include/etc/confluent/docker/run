@@ -23,17 +23,33 @@ set -o nounset \
 echo "===> Iniatializing Zookeeper Server..."
 if [[ -z "${ZOOKEEPER_SERVERS-}" ]]
 then
-        zkhosts=$(awk '{print $1}' /tmp/zookeepers)
+        zkhosts=$(awk '{print $2}' /tmp/zookeepers)
         if [ -n "$zkhosts" ] ; then
                 zknodes=`echo $zkhosts`                 # convert <\n> to ' '
         fi
-        export ZOOKEEPER_SERVERS_PORT=${ZOOKEEPER_SERVERS_PORT:-"2888:3888"}
+
+        #Prepare ZK Server List
+        export ZOOKEEPER_SERVERS_PORT=${ZOOKEEPER_SERVERS_PORT:-"2888:3888"}        
         for znode in ${zknodes//,/ } ; do
                 zk+=$znode:$ZOOKEEPER_SERVERS_PORT";"
         done
         export ZOOKEEPER_SERVERS=${zk::-1}
+
+        
+
+ 
+
 fi
+
+if [[ -z "${ZOOKEEPER_SERVER_ID-}" ]]
+then
+        #Set my zookeeper id
+        zkmyid=$(awk '{print $1}' /tmp/myzookeeperid)
+        export ZOOKEEPER_SERVER_ID=$zkmyid
+fi
+
 echo $ZOOKEEPER_SERVERS
+echo $ZOOKEEPER_SERVER_ID
 
 echo "===> ENV Variables ..."
 env | sort
