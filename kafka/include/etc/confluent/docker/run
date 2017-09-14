@@ -47,13 +47,12 @@ if [[ -z "${KAFKA_ADVERTISED_LISTENERS-}" ]]
 then
         murl_top=http://169.254.169.254/latest/meta-data
         ThisInstance=$(curl -f $murl_top/instance-id 2> /dev/null)
-        ThisRegion=$(curl -f $murl_top/placement/availability-zone |sed 's/[a-z]$//')
-        ThisPrivateIpAddress=$(curl -f $murl_top/local-ipv4)
+        kfhost=$(awk '/$ThisInstance/ {print $1}' /tmp/brokers)
 
         LISTENERS=${LISTENERS:-"PLAINTEXT://:9092"}
         echo ${LISTENERS//,/ }
         for bnode in ${LISTENERS//,/ } ; do
-        brListeners+=${bnode///://$ThisPrivateIpAddress:},
+        brListeners+=${bnode///://$kfhost:},
         done
         export KAFKA_ADVERTISED_LISTENERS=${brListeners::-1}
 fi
