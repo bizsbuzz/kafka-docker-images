@@ -6,41 +6,48 @@ set -o nounset \
     -o xtrace
 
 # Generate CA key
-openssl req -new -x509 -keyout snakeoil-ca-1.key -out snakeoil-ca-1.crt -days 365 -subj '/CN=ca1.test.confluent.io/OU=TEST/O=CONFLUENT/L=PaloAlto/S=Ca/C=US' -passin pass:confluent -passout pass:confluent
-# openssl req -new -x509 -keyout snakeoil-ca-2.key -out snakeoil-ca-2.crt -days 365 -subj '/CN=ca2.test.confluent.io/OU=TEST/O=CONFLUENT/L=PaloAlto/S=Ca/C=US' -passin pass:confluent -passout pass:confluent
+openssl req -new -x509 -keyout kafka-ca.key -out kafka-ca.crt -days 365 -subj '/CN=KafkaROOTCA/OU=INFRA/O=INFOR/L=NY/S=NY/C=US' -passin pass:infrak -passout pass:infrak
+
+
+cp kafka-ca.crt kafka-ca.pem
 
 # Kafkacat
-openssl genrsa -des3 -passout "pass:confluent" -out kafkacat.client.key 1024
-openssl req -passin "pass:confluent" -passout "pass:confluent" -key kafkacat.client.key -new -out kafkacat.client.req -subj '/CN=kafkacat.test.confluent.io/OU=TEST/O=CONFLUENT/L=PaloAlto/S=Ca/C=US'
-openssl x509 -req -CA snakeoil-ca-1.crt -CAkey snakeoil-ca-1.key -in kafkacat.client.req -out kafkacat-ca1-signed.pem -days 9999 -CAcreateserial -passin "pass:confluent"
+openssl genrsa -des3 -passout "pass:infrak" -out kafkacat.client.key 1024
+openssl req -passin "pass:infrak" -passout "pass:infrak" -key kafkacat.client.key -new -out kafkacat.client.req -subj '/CN=kafkacat.ec2.internal/OU=INFRA/O=INFOR/L=NY/S=NY/C=US'
+openssl x509 -req -CA kafka-ca.crt -CAkey kafka-ca.key -in kafkacat.client.req -out kafkacat-ca1-signed.pem -days 9999 -CAcreateserial -passin "pass:infrak"
 
 
 
-for i in broker1 broker2 broker3 producer consumer
+for i in broker1 broker2 broker3 client
 do
-	echo $i
-	# Create keystores
-	keytool -genkey -noprompt \
-				 -alias $i \
-				 -dname "CN=*.ec2.internal, OU=TEST, O=CONFLUENT, L=PaloAlto, S=Ca, C=US" \
-				 -keystore kafka.$i.keystore.jks \
-				 -keyalg RSA \
-				 -storepass confluent \
-				 -keypass confluent
+        echo $i
+        # Create keystores
+        keytool -genkeypair -noprompt \
+                                 -alias $i \
+                                 -dname "CN=*.ec2.internal, OU=INFRA, O=INFOR, L=NY, S=NY, C=US" \
+                                 -keystore kafka.$i.keystore.jks \
+                                 -keyalg RSA \
+                                 -storepass infrak \
+                                 -keypass infrak
 
-	# Create CSR, sign the key and import back into keystore
-	keytool -keystore kafka.$i.keystore.jks -alias $i -certreq -file $i.csr -storepass confluent -keypass confluent
+        # Create CSR, sign the key and import back into keystore
+        keytool -keystore kafka.$i.keystore.jks -alias $i -certreq -file $i.csr -storepass infrak -keypass infrak
 
-	openssl x509 -req -CA snakeoil-ca-1.crt -CAkey snakeoil-ca-1.key -in $i.csr -out $i-ca1-signed.crt -days 9999 -CAcreateserial -passin pass:confluent
+        openssl x509 -req -CA kafka-ca.crt -CAkey kafka-ca.key -in $i.csr -out $i-ca1-signed.crt -days 9999 -CAcreateserial -passin pass:infrak
 
-	keytool -keystore kafka.$i.keystore.jks -alias CARoot -import -file snakeoil-ca-1.crt -storepass confluent -keypass confluent
+        keytool -keystore kafka.$i.keystore.jks -alias CARoot -import -file kafka-ca.crt -storepass infrak -keypass infrak
 
-	keytool -keystore kafka.$i.keystore.jks -alias $i -import -file $i-ca1-signed.crt -storepass confluent -keypass confluent
+        keytool -keystore kafka.$i.keystore.jks -alias $i -import -file $i-ca1-signed.crt -storepass infrak -keypass infrak
 
-	# Create truststore and import the CA cert.
-	keytool -keystore kafka.$i.truststore.jks -alias CARoot -import -file snakeoil-ca-1.crt -storepass confluent -keypass confluent
+        # Create truststore and import the CA cert.
+        keytool -keystore kafka.$i.truststore.jks -alias CARoot -import -file kafka-ca.crt -storepass infrak -keypass infrak
 
-  echo "confluent" > ${i}_sslkey_creds
-  echo "confluent" > ${i}_keystore_creds
-  echo "confluent" > ${i}_truststore_creds
+  echo "infrak" > ${i}_sslkey_creds
+  echo "infrak" > ${i}_keystore_creds
+  echo "infrak" > ${i}_truststore_creds
 done
+
+#Producer certs in different format
+keytool -importkeystore -srckeystore kafka.client.keystore.jks -destkeystore kafka.client.keystore.p12 -srcstoretype JKS -deststoretype PKCS12 -srcstorepass infrak -deststorepass infrak -srckeypass infrak -destkeypass infrak -alias client -noprompt
+openssl pkcs12 -in kafka.client.keystore.p12  -nokeys -out client.pem -passin "pass:infrak"
+openssl pkcs12 -in kafka.client.keystore.p12  -nodes -nocerts -out client_key.pem -passin "pass:infrak"
