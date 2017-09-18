@@ -1,0 +1,20 @@
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+copy_extensions=copy
+prompt = no
+[req_distinguished_name]
+C = US
+ST = NY
+L = NY
+O = INFOR
+OU = INFRA
+CN = *.ec2.internal
+[v3_req]
+basicConstraints = CA:FALSE
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = *.elb.us-east-1.amazonaws.com
+DNS.2 = *.ec2.internal
+DNS.3 = *.infra.awsdev.infor.com
+
